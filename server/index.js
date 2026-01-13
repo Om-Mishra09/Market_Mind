@@ -209,7 +209,7 @@ app.get('/api/products', async (req, res) => {
 // Endpoint: POST /api/predict
 app.post('/api/predict', (req, res) => {
   const { name, category, rating, rating_count } = req.body;
-  const scriptPath = path.join(__dirname, '../ml/predict_price.py');
+  const scriptPath = path.join(__dirname, 'ml', 'predict_price.py');
 
   const pythonProcess = spawn('python3', [
     scriptPath,
