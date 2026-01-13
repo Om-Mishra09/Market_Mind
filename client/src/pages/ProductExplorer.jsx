@@ -8,6 +8,7 @@ import {
 import { FaSearch, FaChevronDown, FaChevronUp, FaChartLine, FaHeart, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import API_BASE_URL from '../config';
 
 // --- HELPER: CATEGORY IMAGES ---
 const getCategoryImage = (category) => {
@@ -174,7 +175,7 @@ export default function ProductExplorer() {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/products');
+      const res = await axios.get(`${API_BASE_URL}/api/products`);
       setProducts(res.data);
     } catch (err) {
       console.error("Fetch error", err);
