@@ -90,7 +90,7 @@ try:
     predicted_price = model.predict(input_data)[0]
 
     # SUCCESS: Print JSON result
-    print(json.dumps({"predicted_price": round(predicted_price, 2)}))
+    print(json.dumps({"predicted_price": round(predicted_price, 2)}),flush=True)
 
 except Exception as e:
     print(json.dumps({"error": f"Prediction Error: {str(e)}"}))

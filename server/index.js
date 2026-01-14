@@ -230,9 +230,21 @@ app.post('/api/predict', (req, res) => {
 
   pythonProcess.on('close', (code) => {
     try {
-      const prediction = JSON.parse(dataToSend);
+      console.log('🐍 Raw Python Output:', dataToSend);
+      const jsonStartIndex = dataToSend.indexOf('{');
+      const jsonEndIndex = dataToSend.lastIndexOf('}') + 1;
+
+      if (jsonStartIndex === -1 || jsonEndIndex === -1) {
+        throw new Error('No JSON found in Python output');
+      }
+
+      const cleanJsonString = dataToSend.substring(jsonStartIndex, jsonEndIndex);
+      const prediction = JSON.parse(cleanJsonString);
+      
       res.json(prediction);
+
     } catch (error) {
+      console.error('❌ Python Parse Error:', error);
       res.status(500).json({ error: 'Failed to parse prediction from Python.' });
     }
   });
