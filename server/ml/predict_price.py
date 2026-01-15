@@ -7,7 +7,7 @@ import sys
 import json
 import os
 import warnings
-import numpy as np
+import re
 
 # --- 1. SETUP ---
 warnings.filterwarnings("ignore")
@@ -15,78 +15,95 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def get_dummy_data():
     return pd.DataFrame({
-        'name': ['Gaming Laptop', 'Cheap Cable', '4K TV', 'USB Hub', 'Headphones'],
-        'category': ['Electronics', 'Computers&Accessories', 'Electronics', 'Computers&Accessories', 'Electronics'],
-        'price': [50000, 200, 30000, 500, 2000], 
-        'rating': [4.5, 3.8, 4.8, 4.0, 3.5],
-        'rating_count': [1000, 50, 200, 100, 50]
+        'name': ['Gaming Laptop', 'Budget Mouse', '4K Smart TV', 'USB Cable', 'Headphones', 'Flagship Phone', 'Office Chair'],
+        'category': ['Electronics', 'Accessories', 'Electronics', 'Accessories', 'Accessories', 'Electronics', 'Furniture'],
+        'price': [55000, 400, 32000, 250, 1500, 70000, 5000], 
+        'rating': [4.5, 3.8, 4.6, 4.0, 4.1, 4.7, 4.2],
+        'rating_count': [1200, 500, 300, 1500, 800, 2000, 100]
     })
 
-# --- 2. LOAD DATA ---
+# --- 2. LOAD & CLEAN DATA ---
 df = None
-using_dummy = False
+data_source = "real"
 
 try:
     csv_path = os.path.join(os.path.dirname(__file__), '../amazon.csv')
     
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
+        
+        # 1. Normalize Headers (Handle 'Product Name', 'Name', 'name' etc.)
         df.columns = df.columns.str.lower().str.strip()
         
-        # Clean Price: Remove ₹ and commas
-        if 'price' in df.columns:
-            df['price'] = df['price'].astype(str).str.replace('₹', '', regex=False).str.replace(',', '', regex=False)
-            df['price'] = pd.to_numeric(df['price'], errors='coerce') # Force to numbers
+        # 2. Rename columns to standard names if they differ
+        # Map whatever exists to 'name', 'price', 'category'
+        col_map = {}
+        for col in df.columns:
+            if 'name' in col and 'name' not in col_map: col_map[col] = 'name'
+            if 'price' in col and 'price' not in col_map: col_map[col] = 'price'
+            if 'cat' in col and 'category' not in col_map: col_map[col] = 'category'
+            if 'rating' in col and 'count' not in col and 'rating' not in col_map: col_map[col] = 'rating'
+            if 'count' in col and 'rating_count' not in col_map: col_map[col] = 'rating_count'
             
-        df = df.dropna(subset=['price']) # Drop rows where price became NaN
+        df = df.rename(columns=col_map)
+
+        # 3. Clean Price (Robust Regex)
+        # Keeps only digits and dots. "₹12,000.00" -> "12000.00"
+        if 'price' in df.columns:
+            df['price'] = df['price'].astype(str).apply(lambda x: re.sub(r'[^\d.]', '', x))
+            df['price'] = pd.to_numeric(df['price'], errors='coerce')
         
-        required_cols = ['name', 'category', 'price', 'rating', 'rating_count']
-        missing_cols = [col for col in required_cols if col not in df.columns]
+        # 4. Clean Ratings
+        for col in ['rating', 'rating_count']:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Drop rows with no price/name
+        df = df.dropna(subset=['price', 'name'])
         
-        if missing_cols or df.empty:
-            using_dummy = True
-            df = get_dummy_data()
+        # If cleaning killed all data, fallback
+        if df.empty:
+            raise ValueError("All data was cleaned away (bad formatting)")
             
     else:
-        using_dummy = True
-        df = get_dummy_data()
+        raise FileNotFoundError("amazon.csv not found")
 
 except Exception as e:
-    using_dummy = True
+    data_source = f"dummy_fallback_error_{str(e)}"
     df = get_dummy_data()
 
-if df is None or df.empty:
-    df = get_dummy_data()
-
-# --- 3. PREPARE DATA ---
+# --- 3. TRAIN MODEL ---
 try:
     # Feature Engineering
     df['brand'] = df['name'].apply(lambda x: str(x).split(' ')[0] if pd.notna(x) else 'Generic')
     
-    # Standardize Categories (Merge similar ones to reduce confusion)
-    df['category'] = df['category'].str.lower().str.replace(' ', '').str.replace('&', '')
+    # Standardize Category
+    if 'category' in df.columns:
+        df['category'] = df['category'].fillna('Unknown').astype(str).str.lower().str.replace(r'[^a-z]', '', regex=True)
+    else:
+        df['category'] = 'unknown'
 
     features = ['category', 'brand', 'rating', 'rating_count']
     target = 'price'
+    
+    # Fill missing features with defaults instead of dropping (preserves more data)
+    df['brand'] = df['brand'].fillna('Generic')
+    df['rating'] = df['rating'].fillna(4.0)
+    df['rating_count'] = df['rating_count'].fillna(100)
 
-    for col in ['rating', 'rating_count']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    
-    df = df.dropna()
-    
     X = df[features]
     y = df[target]
 
-    # --- 4. TRAIN MODEL ---
     column_trans = make_column_transformer(
         (OneHotEncoder(handle_unknown='ignore'), ['category', 'brand']), 
         remainder='passthrough'
     )
 
-    model = make_pipeline(column_trans, RandomForestRegressor(n_estimators=20, random_state=42))
+    # Increased n_estimators for better stability
+    model = make_pipeline(column_trans, RandomForestRegressor(n_estimators=50, random_state=42))
     model.fit(X, y)
 
-    # --- 5. PREDICT ---
+    # --- 4. PREDICT ---
     if len(sys.argv) < 5:
         print(json.dumps({"predicted_price": 0, "message": "Not enough inputs"}), flush=True)
         sys.exit(0)
@@ -95,29 +112,22 @@ try:
     category_input = sys.argv[2]
     rating = float(sys.argv[3])
     rating_count = int(sys.argv[4])
-
     brand_input = name_input.split(' ')[0]
     
-    # Preprocess input category exactly like training data
-    clean_category = category_input.lower().replace(' ', '').replace('&', '')
+    clean_cat_input = re.sub(r'[^a-z]', '', category_input.lower())
 
     input_data = pd.DataFrame(
-        [[clean_category, brand_input, rating, rating_count]], 
+        [[clean_cat_input, brand_input, rating, rating_count]], 
         columns=features
     )
     
     predicted_price = model.predict(input_data)[0]
 
-    
-    lower_name = name_input.lower()
-    is_cheap_item = any(x in lower_name for x in ['cable', 'usb', 'case', 'cover', 'protector', 'mouse', 'adapter'])
-    
-    if is_cheap_item and predicted_price > 2000:
-        predicted_price = min(predicted_price / 10, 999) 
+    if predicted_price < 0: predicted_price = 100
 
     print(json.dumps({
         "predicted_price": round(predicted_price, 2),
-        "debug_dummy": using_dummy
+        "debug_source": data_source 
     }), flush=True)
 
 except Exception as e:
