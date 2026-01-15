@@ -125,7 +125,7 @@ export default function Home() {
         </Container>
       </Box>
 
-      <Container maxW="7xl" mt={-20} flex="1">
+      <Container maxW="7xl" mt={10} flex="1">
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={10}>
           <StatCard
             label="ITEMS TRACKED"
@@ -258,7 +258,7 @@ export default function Home() {
       <Box bg="white" color="gray.600" py={10} borderTop="1px solid" borderColor="gray.200" mt="auto">
         <Container maxW={'6xl'} textAlign="center">
           <Heading size="md" mb={2} color="blue.600">Market Mind</Heading>
-          <Text fontSize="sm">© 2024 Market Mind Inc. Smart Shopping for Smart People.</Text>
+          <Text fontSize="sm">© 2026 Market Mind Inc. Smart Shopping for Smart People.</Text>
         </Container>
       </Box>
     </Box>
