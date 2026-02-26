@@ -1,28 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box, Container, Heading, Text, Input, SimpleGrid, Select, Stack,
-  Card, CardBody, Image, Flex, Badge, Icon, Button, Collapse,
-  useToast, InputGroup, InputLeftElement, Spinner,
-  HStack
-} from '@chakra-ui/react';
-import { FaSearch, FaChevronDown, FaChevronUp, FaChartLine, FaHeart, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import API_BASE_URL from '../config';
-
-// --- HELPER: CATEGORY IMAGES ---
-const getCategoryImage = (category) => {
-  const cat = category ? category.toLowerCase() : "";
-  if (cat.includes('computer') || cat.includes('laptop')) return "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes('phone') || cat.includes('mobile')) return "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes('audio') || cat.includes('headphone')) return "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes('tv') || cat.includes('monitor')) return "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes('cloth') || cat.includes('fashion')) return "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes('home') || cat.includes('kitchen')) return "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=400&q=80";
-  return "https://images.unsplash.com/photo-1526738549149-8e07eca6c147?auto=format&fit=crop&w=400&q=80";
-};
-
-// --- CARD COMPONENT ---
 const ExplorerCard = ({ product }) => {
   const { user } = useAuth();
   const toast = useToast();
@@ -38,8 +13,6 @@ const ExplorerCard = ({ product }) => {
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     try {
-      // 1. Get AI Prediction from Backend
-      // Defaults to 0/4.0 if missing to prevent Python errors
       const aiResponse = await axios.post(`${API_BASE_URL}/api/predict`, {
         name: product.name,
         category: product.category,
@@ -48,13 +21,8 @@ const ExplorerCard = ({ product }) => {
       });
 
       const aiPrice = aiResponse.data.predicted_price;
-
-      // 2. Mock Competitor Data (Flipkart) 
       const flipkartVariance = (Math.random() * 0.2) - 0.1;
       const flipkartPrice = Math.floor(product.price * (1 + flipkartVariance));
-
-      // 3. Verdict Logic
-      // If actual price is lower than AI fair price, it's a "Steal"
       const isGoodDeal = product.price < aiPrice;
 
       setAnalysisData({
@@ -67,7 +35,7 @@ const ExplorerCard = ({ product }) => {
       console.error("AI Analysis Failed:", error);
       toast({
         title: "Analysis Failed",
-        description: "Could not fetch AI prediction. Ensure Python dependencies are installed.",
+        description: "Could not fetch AI prediction.",
         status: "error"
       });
     } finally {
@@ -75,65 +43,64 @@ const ExplorerCard = ({ product }) => {
     }
   };
 
-  const addToWatchlist = async (product) => {
+  const addToWatchlist = async () => {
     try {
       const token = localStorage.getItem("market_mind_token");
 
       if (!token) {
-        alert("Please log in first.");
+        toast({
+          title: "Login Required",
+          description: "Please log in to add items to your watchlist.",
+          status: "warning"
+        });
         return;
       }
 
-      // --- STEP 1: CLEAN THE DATA ---
-      // Remove "₹" and commas from price, then convert to Number
-      // Example: "₹1,200" becomes 1200
-      const cleanPrice = Number(String(product.price).replace(/[^0-9.]/g, ''));
+      setIsWatchlistLoading(true);
 
-      // Check if ID exists (Mongo usually uses _id, APIs use id)
-      // Fallback: Generate an ID from the product name if missing
+      const cleanPrice = Number(String(product.price).replace(/[^0-9.]/g, ''));
       const fallbackId = product.name
         ? product.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
         : `prod-${Date.now()}`;
       const productId = product.id || product._id || fallbackId;
 
       if (!productId) {
-        console.error("Product has no ID!", product);
-        alert("Error: Cannot add product (Missing ID). Check Console.");
+        toast({ title: "Error", description: "Missing Product ID", status: "error" });
         return;
       }
 
-      // --- STEP 2: SEND CLEAN DATA ---
       const payload = {
         productId: productId,
         name: product.name,
-        price: cleanPrice, // Sending a pure Number now
-        image: product.image,
-        link: product.link
+        price: cleanPrice,
+        image: imgUrl, 
+        link: product.link || "#" 
       };
 
-      console.log("Sending payload:", payload); // Check this in Console if it fails again!
-
       const response = await axios.post(
-        "http://localhost:8000/api/watchlist",
+        `${API_BASE_URL}/api/watchlist`,
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      alert("Added to Watchlist!");
+      toast({
+        title: "Added to Watchlist!",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
 
     } catch (error) {
-      // --- STEP 3: SEE THE REAL ERROR MESSAGE ---
       console.error("Full Error Object:", error);
-
-      if (error.response) {
-        // The backend usually sends a message like "Price must be a number"
-        console.error("Backend Error Data:", error.response.data);
-        alert(`Failed: ${error.response.data.message || "Bad Request"}`);
-      } else {
-        alert("Network Error. Check console.");
-      }
+      toast({
+        title: "Failed to add",
+        description: error.response?.data?.message || "Network Error",
+        status: "error"
+      });
+    } finally {
+      setIsWatchlistLoading(false);
     }
   };
 
@@ -178,6 +145,7 @@ const ExplorerCard = ({ product }) => {
           <Button flex={1} size="sm" colorScheme="blue" variant="outline" leftIcon={<FaChartLine />} onClick={handleAnalyze} isLoading={isAnalyzing}>
             Analyze
           </Button>
+          {/* FIX: Ensure onClick calls the function properly */}
           <Button size="sm" colorScheme="pink" variant="ghost" isLoading={isWatchlistLoading} onClick={addToWatchlist}>
             <Icon as={FaHeart} />
           </Button>
@@ -186,97 +154,3 @@ const ExplorerCard = ({ product }) => {
     </Card>
   );
 };
-
-// --- MAIN PAGE ---
-export default function ProductExplorer() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState('all');
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/products`);
-      setProducts(res.data);
-    } catch (err) {
-      console.error("Fetch error", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const productCat = p.category ? p.category.toLowerCase() : "";
-    const matchesCategory = category === 'all' || productCat.includes(category);
-    return matchesSearch && matchesCategory;
-  });
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-
-  const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-
-  return (
-    <Box minH="100vh" bg="gray.50" py={10}>
-      <Container maxW="7xl">
-        <Heading mb={6} textAlign="center">Deals Explorer</Heading>
-
-        <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8}>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none"><FaSearch color="gray.300" /></InputLeftElement>
-            <Input placeholder="Search products..." bg="white" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
-          </InputGroup>
-
-          <Select bg="white" w={{ base: 'full', md: '300px' }} value={category} onChange={(e) => { setCategory(e.target.value); setCurrentPage(1); }}>
-            <option value="all">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="computers">Computers & Accessories</option>
-            <option value="home">Home & Kitchen</option>
-            <option value="clothing">Clothing & Apparel</option>
-            <option value="health">Health & Personal Care</option>
-            <option value="sports">Sports & Fitness</option>
-          </Select>
-        </Stack>
-
-        {loading ? (
-          <Flex justify="center" align="center" minH="200px"><Spinner size="xl" color="blue.500" /></Flex>
-        ) : (
-          <>
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6} mb={10}>
-              {currentItems.map(product => (
-                <ExplorerCard key={product.id} product={product} />
-              ))}
-            </SimpleGrid>
-
-            {totalPages > 1 && (
-              <HStack justify="center" spacing={4}>
-                <Button onClick={handlePrev} isDisabled={currentPage === 1} leftIcon={<FaArrowLeft />}>
-                  Prev
-                </Button>
-                <Text fontWeight="bold">Page {currentPage} of {totalPages}</Text>
-                <Button onClick={handleNext} isDisabled={currentPage === totalPages} rightIcon={<FaArrowRight />}>
-                  Next
-                </Button>
-              </HStack>
-            )}
-
-            {filteredProducts.length === 0 && (
-              <Text textAlign="center" color="gray.500">No products found matching your search.</Text>
-            )}
-          </>
-        )}
-      </Container>
-    </Box>
-  );
-}
