@@ -75,39 +75,63 @@ const ExplorerCard = ({ product }) => {
     }
   };
 
-  const addToWatchlist = async () => {
-    if (!user) {
-      toast({ title: "Login Required", status: "warning" });
+const addToWatchlist = async (product) => {
+  try {
+    const token = localStorage.getItem("market_mind_token"); 
+
+    if (!token) {
+      alert("Please log in first.");
       return;
     }
-    setIsWatchlistLoading(true);
-    try {
-      const token = localStorage.getItem('market_mind_token');
 
-      await axios.post(`${API_BASE_URL}/api/watchlist`, {
-        productId: product.id,
-        targetPrice: product.price * 0.9
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+    // --- STEP 1: CLEAN THE DATA ---
+    // Remove "₹" and commas from price, then convert to Number
+    // Example: "₹1,200" becomes 1200
+    const cleanPrice = Number(String(product.price).replace(/[^0-9.]/g, ''));
 
-      toast({ title: "Success", description: "Added to your Watchlist!", status: "success", duration: 2000 });
-    } catch (error) {
-      console.error("Watchlist Error Detail:", error.response);
+    // Check if ID exists (Mongo usually uses _id, APIs use id)
+    const productId = product.id || product._id;
 
-      if (error.response && error.response.status === 409) {
-        toast({ title: "Already Tracking", description: "This item is already in your list.", status: "info", duration: 2000 });
-      } else {
-        toast({
-          title: "Error",
-          description: error.response?.data?.error || "Server Error. Check Terminal.",
-          status: "error"
-        });
-      }
-    } finally {
-      setIsWatchlistLoading(false);
+    if (!productId) {
+      console.error("Product has no ID!", product);
+      alert("Error: Cannot add product (Missing ID). Check Console.");
+      return;
     }
-  };
+
+    // --- STEP 2: SEND CLEAN DATA ---
+    const payload = { 
+      productId: productId,
+      name: product.name,
+      price: cleanPrice, // Sending a pure Number now
+      image: product.image,
+      link: product.link
+    };
+    
+    console.log("Sending payload:", payload); // Check this in Console if it fails again!
+
+    const response = await axios.post(
+      "http://localhost:8000/api/watchlist",
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    alert("Added to Watchlist!");
+
+  } catch (error) {
+    // --- STEP 3: SEE THE REAL ERROR MESSAGE ---
+    console.error("Full Error Object:", error);
+    
+    if (error.response) {
+      // The backend usually sends a message like "Price must be a number"
+      console.error("Backend Error Data:", error.response.data);
+      alert(`Failed: ${error.response.data.message || "Bad Request"}`);
+    } else {
+      alert("Network Error. Check console.");
+    }
+  }
+};
 
   return (
     <Card direction="column" overflow="hidden" variant="outline" bg="white" shadow="sm" _hover={{ shadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s">
