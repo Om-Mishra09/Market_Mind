@@ -54,6 +54,7 @@ column_trans = make_column_transformer(
 model = make_pipeline(column_trans, RandomForestRegressor(n_estimators=50, random_state=42))
 model.fit(X, y)
 
-# Save the trained model to a file
-joblib.dump(model, 'market_mind_model.pkl')
-print("Model trained and saved successfully as 'market_mind_model.pkl'!")
+
+model_path = os.path.join(os.path.dirname(__file__), 'market_mind_model.pkl')
+joblib.dump(model, model_path)
+print(f"Model trained and saved successfully at: {model_path}")
