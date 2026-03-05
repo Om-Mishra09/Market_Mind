@@ -138,49 +138,148 @@ const ExplorerCard = ({ product }) => {
   };
 
   return (
-    <Card direction="column" overflow="hidden" variant="outline" bg="white" shadow="sm" _hover={{ shadow: 'md', transform: 'translateY(-2px)' }} transition="all 0.2s" h="100%">
-      <Image objectFit="cover" h={{ base: "200px", md: "160px" }} w="100%" src={imgUrl} alt={product.name} fallbackSrc="https://via.placeholder.com/400x160" />
-      <CardBody display="flex" flexDir="column">
-        <Flex justify="space-between" align="center" mb={2} wrap="wrap" gap={2}>
-          <Badge colorScheme="teal" rounded="full" px={2} noOfLines={1} maxW="55%">{product.category?.split('|')[0]}</Badge>
-          <Text fontWeight="bold" fontSize="lg" color="green.600" noOfLines={1} maxW="40%">₹{product.price.toLocaleString()}</Text>
+    <Card
+      direction="column"
+      overflow="hidden"
+      variant="elevated"
+      bg="white"
+      shadow="md"
+      borderWidth="1px"
+      borderColor="gray.100"
+      borderRadius="2xl"
+      _hover={{ shadow: '2xl', transform: 'translateY(-6px)', borderColor: 'teal.200' }}
+      transition="all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)"
+      h="100%"
+    >
+      <Box position="relative" overflow="hidden">
+        <Image
+          objectFit="cover"
+          h={{ base: "220px", md: "200px" }}
+          w="100%"
+          src={imgUrl}
+          alt={product.name}
+          fallbackSrc="https://via.placeholder.com/400x200"
+          transition="transform 0.4s ease"
+          _hover={{ transform: 'scale(1.05)' }}
+        />
+      </Box>
+
+      <CardBody display="flex" flexDir="column" p={6}>
+        <Flex justify="space-between" align="flex-start" mb={4} wrap="wrap" gap={2}>
+          <Badge
+            bg="teal.50"
+            color="teal.600"
+            rounded="full"
+            px={3}
+            py={1}
+            fontSize="2xs"
+            fontWeight="bold"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            noOfLines={1}
+            maxW="55%"
+          >
+            {product.category?.split('|')[0]}
+          </Badge>
+          <Text fontWeight="900" fontSize="xl" color="gray.800" noOfLines={1} maxW="40%">
+            ₹{product.price.toLocaleString()}
+          </Text>
         </Flex>
 
-        <Heading size="sm" mb={1} noOfLines={2} title={shortName}>{shortName}</Heading>
+        <Heading size="md" mb={2} fontWeight="800" color="gray.800" lineHeight="tight" noOfLines={2} title={shortName}>
+          {shortName}
+        </Heading>
 
-        <Text fontSize="xs" color="blue.500" cursor="pointer" fontWeight="bold" display="flex" alignItems="center" onClick={() => setShowSpecs(!showSpecs)} mb={3}>
-          {showSpecs ? "Hide Specs" : "View Specs"} <Icon as={showSpecs ? FaChevronUp : FaChevronDown} ml={1} />
+        <Text
+          fontSize="sm"
+          color="teal.500"
+          cursor="pointer"
+          fontWeight="600"
+          display="flex"
+          alignItems="center"
+          onClick={() => setShowSpecs(!showSpecs)}
+          mb={3}
+          _hover={{ color: 'teal.600' }}
+          transition="color 0.2s"
+        >
+          {showSpecs ? "Hide Specs" : "View Specs"}
+          <Icon as={showSpecs ? FaChevronUp : FaChevronDown} ml={1} transition="transform 0.2s" />
         </Text>
+
         <Collapse in={showSpecs} animateOpacity>
-          <Text fontSize="xs" color="gray.500" mb={3} noOfLines={4}>{product.name}</Text>
+          <Text fontSize="sm" color="gray.500" mb={4} noOfLines={4} lineHeight="relaxed">
+            {product.name}
+          </Text>
         </Collapse>
 
         {analysisData && (
-          <Box bg="blue.50" p={3} rounded="md" mb={3} border="1px solid" borderColor="blue.100">
-            <Flex justify="space-between" mb={1}>
-              <Text fontSize="xs" color="gray.600">Fair Price (AI):</Text>
-              <Text fontSize="xs" fontWeight="bold" color="blue.600">₹{analysisData.aiPrice?.toLocaleString()}</Text>
-            </Flex>
+          <Box
+            bg="#f8fafc"
+            p={4}
+            rounded="xl"
+            mb={4}
+            borderWidth="1px"
+            borderColor="gray.200"
+            shadow="inner"
+          >
             <Flex justify="space-between" mb={2}>
-              <Text fontSize="xs" color="gray.600">Flipkart:</Text>
-              <Text fontSize="xs" fontWeight="bold">₹{analysisData.flipkartPrice?.toLocaleString()}</Text>
+              <Text fontSize="sm" color="gray.500" fontWeight="600">Fair Price (AI):</Text>
+              <Text fontSize="sm" fontWeight="800" color="teal.600">₹{analysisData.aiPrice?.toLocaleString()}</Text>
             </Flex>
-            <Flex justify="space-between" pt={2} borderTop="1px dashed" borderColor="blue.200" align="center">
-              <Text fontSize="xs" fontWeight="bold">Verdict:</Text>
-              <Badge colorScheme={analysisData.verdict === "Great Deal" ? "green" : "orange"} variant="solid" noOfLines={1}>
+            <Flex justify="space-between" mb={3}>
+              <Text fontSize="sm" color="gray.500" fontWeight="600">Flipkart:</Text>
+              <Text fontSize="sm" fontWeight="800" color="gray.800">₹{analysisData.flipkartPrice?.toLocaleString()}</Text>
+            </Flex>
+            <Flex justify="space-between" pt={3} borderTop="1px dashed" borderColor="gray.300" align="center">
+              <Text fontSize="xs" fontWeight="700" color="gray.500" textTransform="uppercase" letterSpacing="wider">Verdict:</Text>
+              <Badge
+                colorScheme={analysisData.verdict === "Great Deal" ? "teal" : "orange"}
+                variant="subtle"
+                rounded="full"
+                px={3}
+                py={1}
+                fontSize="xs"
+                fontWeight="bold"
+                noOfLines={1}
+              >
                 {analysisData.verdict}
               </Badge>
             </Flex>
           </Box>
         )}
 
-        <Box mt="auto">
-          <Stack direction="row" spacing={2} pt={2}>
-            <Button flex={1} size="sm" colorScheme="blue" variant="outline" leftIcon={<FaChartLine />} onClick={handleAnalyze} isLoading={isAnalyzing}>
+        <Box mt="auto" pt={2}>
+          <Stack direction="row" spacing={3}>
+            <Button
+              flex={1}
+              size="md"
+              bg="teal.500"
+              color="white"
+              rounded="xl"
+              fontWeight="bold"
+              _hover={{ bg: 'teal.600', shadow: 'md', transform: 'translateY(-2px)' }}
+              _active={{ bg: 'teal.700', transform: 'translateY(0)' }}
+              transition="all 0.2s"
+              leftIcon={<FaChartLine />}
+              onClick={handleAnalyze}
+              isLoading={isAnalyzing}
+            >
               Analyze
             </Button>
-            <Button size="sm" colorScheme="pink" variant="ghost" isLoading={isWatchlistLoading} onClick={() => addToWatchlist()}>
-              <Icon as={FaHeart} />
+            <Button
+              size="md"
+              colorScheme="gray"
+              variant="outline"
+              rounded="xl"
+              borderWidth="2px"
+              _hover={{ bg: 'pink.50', color: 'pink.500', borderColor: 'pink.200', transform: 'translateY(-2px)', shadow: 'sm' }}
+              _active={{ transform: 'translateY(0)' }}
+              transition="all 0.2s"
+              isLoading={isWatchlistLoading}
+              onClick={() => addToWatchlist()}
+              aria-label="Add to Watchlist"
+            >
+              <Icon as={FaHeart} boxSize={4} />
             </Button>
           </Stack>
         </Box>
@@ -230,17 +329,58 @@ export default function ProductExplorer() {
   const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
   return (
-    <Box minH="100vh" bg="gray.50" py={10}>
+    <Box minH="100vh" bg="#f4f4f5" py={12}>
       <Container maxW="7xl">
-        <Heading mb={6} textAlign="center">Deals Explorer</Heading>
+        <Stack spacing={3} mb={12} textAlign="center" alignItems="center">
+          <Heading
+            fontSize={{ base: "3xl", md: "4xl", lg: "5xl" }}
+            fontWeight="900"
+            color="gray.800"
+            letterSpacing="tight"
+          >
+            Deals Explorer
+          </Heading>
+          <Text color="gray.500" fontSize="lg" maxW="2xl">
+            Discover the best tech gadgets, analyze true market value with AI, and find unbeatable deals curated just for you.
+          </Text>
+        </Stack>
 
-        <Stack direction={{ base: 'column', md: 'row' }} spacing={4} mb={8}>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none"><FaSearch color="gray.300" /></InputLeftElement>
-            <Input placeholder="Search products..." bg="white" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+        <Stack
+          direction={{ base: 'column', md: 'row' }}
+          spacing={4}
+          mb={10}
+          bg="white"
+          p={4}
+          rounded="2xl"
+          shadow="sm"
+          borderWidth="1px"
+          borderColor="gray.100"
+        >
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none">
+              <Icon as={FaSearch} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search products..."
+              bg="gray.50"
+              border="none"
+              rounded="xl"
+              _focus={{ bg: 'white', ring: 2, ringColor: 'teal.400' }}
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            />
           </InputGroup>
 
-          <Select bg="white" w={{ base: 'full', md: '300px' }} value={category} onChange={(e) => { setCategory(e.target.value); setCurrentPage(1); }}>
+          <Select
+            size="lg"
+            bg="gray.50"
+            border="none"
+            rounded="xl"
+            w={{ base: 'full', md: '350px' }}
+            _focus={{ bg: 'white', ring: 2, ringColor: 'teal.400' }}
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setCurrentPage(1); }}
+          >
             <option value="all">All Categories</option>
             <option value="electronics">Electronics</option>
             <option value="computers">Computers & Accessories</option>
@@ -252,29 +392,63 @@ export default function ProductExplorer() {
         </Stack>
 
         {loading ? (
-          <Flex justify="center" align="center" minH="200px"><Spinner size="xl" color="blue.500" /></Flex>
+          <Flex justify="center" align="center" minH="40vh">
+            <Spinner size="xl" thickness="4px" speed="0.65s" emptyColor="gray.200" color="teal.500" />
+          </Flex>
         ) : (
           <>
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6} mb={10}>
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8} mb={12}>
               {currentItems.map(product => (
                 <ExplorerCard key={product.id} product={product} />
               ))}
             </SimpleGrid>
 
             {totalPages > 1 && (
-              <HStack justify="center" spacing={4}>
-                <Button onClick={handlePrev} isDisabled={currentPage === 1} leftIcon={<FaArrowLeft />}>
-                  Prev
-                </Button>
-                <Text fontWeight="bold">Page {currentPage} of {totalPages}</Text>
-                <Button onClick={handleNext} isDisabled={currentPage === totalPages} rightIcon={<FaArrowRight />}>
-                  Next
-                </Button>
-              </HStack>
+              <Flex justify="center" align="center" mt={8}>
+                <HStack
+                  spacing={2}
+                  bg="white"
+                  p={2}
+                  rounded="2xl"
+                  shadow="sm"
+                  borderWidth="1px"
+                  borderColor="gray.100"
+                >
+                  <Button
+                    onClick={handlePrev}
+                    isDisabled={currentPage === 1}
+                    leftIcon={<FaArrowLeft />}
+                    variant="ghost"
+                    rounded="xl"
+                    colorScheme="teal"
+                  >
+                    Prev
+                  </Button>
+                  <Badge bg="teal.50" color="teal.700" px={4} py={2} rounded="xl" fontSize="sm" fontWeight="bold">
+                    Page {currentPage} of {totalPages}
+                  </Badge>
+                  <Button
+                    onClick={handleNext}
+                    isDisabled={currentPage === totalPages}
+                    rightIcon={<FaArrowRight />}
+                    variant="ghost"
+                    rounded="xl"
+                    colorScheme="teal"
+                  >
+                    Next
+                  </Button>
+                </HStack>
+              </Flex>
             )}
 
             {filteredProducts.length === 0 && (
-              <Text textAlign="center" color="gray.500">No products found matching your search.</Text>
+              <Flex direction="column" align="center" justify="center" py={20} bg="white" rounded="3xl" shadow="sm" borderWidth="1px" borderColor="gray.100">
+                <Icon as={FaSearch} boxSize={12} color="gray.300" mb={4} />
+                <Heading size="md" color="gray.800" mb={2} fontWeight="700">No products found</Heading>
+                <Text color="gray.500" textAlign="center" maxW="md">
+                  We couldn't find anything matching your search criteria. Try adjusting your filters.
+                </Text>
+              </Flex>
             )}
           </>
         )}
